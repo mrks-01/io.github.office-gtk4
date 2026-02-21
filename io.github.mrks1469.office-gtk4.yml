@@ -8,12 +8,12 @@ finish-args:
   # ── Display ──────────────────────────────────────────────────────────────
   - --socket=wayland
   - --socket=fallback-x11
-  - --share=ipc
   - --device=dri
   - --env=GTK_A11Y=none
 
   # ── Network (required to reach office.com) ───────────────────────────────
   - --share=network
+  - --share=ipc
 
   # ── Sound (WebKit media / notifications) ─────────────────────────────────
   - --socket=pulseaudio
