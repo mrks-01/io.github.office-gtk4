@@ -1,0 +1,78 @@
+app-id: io.github.office-gtk4
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+command: office-gtk4
+
+# GNOME SDK 49 ships:
+#   • GTK 4.18
+#   • libadwaita 1.8
+#   • WebKitGTK 6.0 (webkitgtk-6.0)
+#   • Python 3.13
+#   • GLib 2.82
+# All of these are already present in the runtime — no extra bundling needed.
+
+finish-args:
+  # ── Display ──────────────────────────────────────────────────────────────
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --env=GTK_A11Y=none
+
+  # ── Network (required to reach office.com) ───────────────────────────────
+  - --share=network
+
+  # ── Sound (WebKit media / notifications) ─────────────────────────────────
+  - --socket=pulseaudio
+
+  # ── Persistent storage ───────────────────────────────────────────────────
+  # The Python app calls GLib.get_user_data_dir() / get_user_cache_dir(),
+  # which inside the sandbox resolve to:
+  #   ~/.var/app/io.github.office-gtk4/data/Office-GTK4
+  #   ~/.var/app/io.github.office-gtk4/cache/Office-GTK4
+  # No extra --filesystem permissions needed; the sandbox owns ~/.var/app/<id>/.
+
+  # ── D-Bus (secret service for future keyring integration) ────────────────
+  - --talk-name=org.freedesktop.secrets
+
+  # ── Portal access (file chooser, etc.) ───────────────────────────────────
+  - --talk-name=org.freedesktop.portal.*
+
+modules:
+  - name: office-gtk4
+    buildsystem: simple
+    build-commands:
+      # Python source
+      - install -Dm644 Office-GTK4.py /app/share/office-gtk4/office-gtk4.py
+
+      # Launcher wrapper (separate file so exec bit is preserved cleanly)
+      - install -Dm755 office-gtk4.sh /app/bin/office-gtk4
+
+      # .desktop entry
+      - install -Dm644 io.github.office-gtk4.desktop /app/share/applications/io.github.office-gtk4.desktop
+
+      # Scalable icon
+      - install -Dm644 io.github.office-gtk4.svg /app/share/icons/hicolor/scalable/apps/io.github.office-gtk4.svg
+
+      # AppStream metainfo
+      # Must go to /app/share/metainfo/ — flatpak-builder indexes it from there
+      # and generates the app-info appstream cache that Flatpak expects.
+      - install -Dm644 io.github.office-gtk4.metainfo.xml /app/share/metainfo/io.github.office-gtk4.metainfo.xml
+
+    sources:
+      - type: file
+        path: Office-GTK4.py
+
+      # Launcher script as a real file — heredoc tricks are unreliable in
+      # the simple buildsystem and don't preserve the exec bit.
+      - type: file
+        path: office-gtk4.sh
+
+      - type: file
+        path: io.github.office-gtk4.desktop
+
+      - type: file
+        path: io.github.office-gtk4.svg
+
+      - type: file
+        path: io.github.office-gtk4.metainfo.xml
